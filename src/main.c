@@ -15,7 +15,7 @@
 // Print usage information
 void usage(void);
 // Handle modbus connection
-void connectModbus(modbus_t *, char *, int);
+void connectModbus(modbus_t **, char *, int);
 // Send modbus packet
 void sendModbus(modbus_t *, int);
 // Close everything and quit
@@ -38,7 +38,6 @@ void main(int argc, char *argv[]) {
   /* configuration options */
   int port = 502, function = 0;
   char url[256] = {'\0'};
-  //char serialport[256], measurement[256] = {'\0'}, url[256] = {'\0'};
   static struct option loptions[] = {
     {"help",        no_argument,       0, 'h'},
     {"port",        required_argument, 0, 'p'},
@@ -85,7 +84,7 @@ void main(int argc, char *argv[]) {
   printf("\nWelcome to Modbus CLI v%d.%d.%d", MODBUSCLI_VERSION_MAJOR, MODBUSCLI_VERSION_MINOR, MODBUSCLI_VERSION_PATCH);
   printf("\n============================\n");
 
-  connectModbus(mb, url, port);
+  connectModbus(&mb, url, port);
   sendModbus(mb, function);
   quitProgram(0);
 }
@@ -101,15 +100,17 @@ void usage(void) {
     "\n");
 }
 
-void connectModbus(modbus_t * mb, char * url, int port) {
+void connectModbus(modbus_t ** mb, char * url, int port) {
   // Connect to PLC through modbus TCP
-  mb = modbus_new_tcp(url, port);
+  *mb = modbus_new_tcp(url, port);
 
-  modbus_set_debug(mb, 1);
+  // TODO: set debug options
+  //modbus_set_slave(*mb, 1);
+  //modbus_set_debug(*mb, 1);
 
-  if (modbus_connect(mb) == -1) {
+  if (modbus_connect(*mb) == -1) {
     fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
-    modbus_free(mb);
+    modbus_free(*mb);
     exit(EXIT_FAILURE);
   }
 }
@@ -138,10 +139,6 @@ void sendModbus(modbus_t * mb, int function) {
     default:
       break;
   }
-
-  // Close modbus connection
-  modbus_close(mb);
-  modbus_free(mb);
 }
 
 void read_coil_status(modbus_t * mb) {
@@ -182,7 +179,7 @@ void read_input_status(modbus_t * mb) {
 
   buffer_input = malloc(nb * sizeof(uint8_t));
 
-  total = modbus_read_bits(mb, addr, nb, buffer_input);
+  total = modbus_read_input_bits(mb, addr, nb, buffer_input);
   if (total == -1) {
     fprintf(stderr, "%s\n", modbus_strerror(errno));
     free(buffer_input);
@@ -209,11 +206,14 @@ void read_holding_registers(modbus_t * mb) {
   buffer_reg = malloc(nb * sizeof(uint16_t));
 
   total = modbus_read_registers(mb, addr, nb, buffer_reg);
+
   if (total == -1) {
     fprintf(stderr, "%s\n", modbus_strerror(errno));
     free(buffer_reg);
     exit(EXIT_FAILURE);
   }
+
+  printf("total: %d\n", total);
 
   for (i = 0; i < total; i++) {
     printf("reg[%d]=%d (0x%X)\n", i + addr, buffer_reg[i], buffer_reg[i]);
