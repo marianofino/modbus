@@ -10,9 +10,11 @@
 
 // Configuration options
 typedef struct {
-  char url[256];
-  int port;
-  int function;
+  char url[256];// url of plc
+  int port;     // port of plc
+  int function; // modbus function
+  int interval; // period in seconds
+  int delta;    // delta mapping
 } cli_arguments_t;
 
 // Get program args and store them

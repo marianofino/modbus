@@ -30,6 +30,6 @@ void main(int argc, char *argv[]) {
   }
 
   connectModbus(&mb, options.url, options.port);
-  sendModbus(mb, options.function);
+  sendModbus(mb, options.function, options.interval, options.delta);
   quitProgram(0);
 }
